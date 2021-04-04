@@ -1,0 +1,54 @@
+#pragma kernel CSMain
+
+// Number of FFT samples.
+uint SampleCount;
+
+// Read/write index of the ring buffer.
+uint RingIndex;
+
+// Ring buffer of sample data in linear [0, 1] space.
+StructuredBuffer<uint> Samples;
+
+// Result texture.
+RWTexture2D<float4> Result;
+
+// Config constants.
+static const float EPSILON = 1.401298E-45;
+static const float DBFS_LOWER = -100.0;
+static const float DBFS_UPPER = -20.0;
+
+// Get the proper index within the uploaded ring buffer.
+uint internal_index(const uint i) {
+    return (i + RingIndex) % (SampleCount * (SampleCount * 2));
+}
+
+// Everyday inverse lerp.
+float inverse_lerp(const float from, const float to, const float v) {
+    return (v - from) / (to - from);
+}
+
+// Generates a grayscale spectrogram texture in logarithmic dBFS scale.
+// This can then be fed to a pipeline to add proper colors and whatever else.
+// AMD prefers groups of 64 threads and Nvidia prefers 32.
+// Went with 32 to compromise for both. Probably doesn't matter that much.
+[numthreads(32,32,1)]
+void CSMain (const uint3 id : SV_DispatchThreadID) {
+    // Figure out position within the packed sample buffer.
+    const uint packed = Samples[internal_index(id.x / 2 + id.y * SampleCount)];
+
+    // Extract correct u16 sample by shifting if the x index is odd.
+    const uint shift = (id.x % 2) * 16;
+    const uint unorm16 = (packed >> shift) & 0xFFFF;
+    
+    // Convert back to normalized 0-1 space and clamp to [E, 1] to avoid booms.
+    const float sample = clamp((float)unorm16 / 65535.0, EPSILON, 1.0);
+
+    // Transform sample to dBFS scale within [-100, 0].
+    const float dbfs = clamp(20.0 * log10(sample), DBFS_LOWER, DBFS_UPPER);
+
+    // Normalize to [0, 1] for texture stuff.
+    const float norm = inverse_lerp(DBFS_LOWER, DBFS_UPPER, dbfs);
+
+    // Write pixel as grayscale.
+    Result[id.yx] = float4(float3(1.0, 1.0, 1.0) * norm, 1.0);
+}
