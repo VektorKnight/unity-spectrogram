@@ -1,0 +1,38 @@
+#pragma kernel CSMain
+
+// Config constants.
+static const float EPSILON = 1.401298E-45;
+static const float DBFS_LOWER = -100.0;
+static const float DBFS_UPPER = -20.0;
+
+// New column of samples.
+uint SampleCount;
+StructuredBuffer<float> Samples;
+
+// Previous and current textures.
+RWTexture2D<float4> Previous;
+RWTexture2D<float4> Current;
+
+// Everyday inverse lerp.
+float inverse_lerp(const float from, const float to, const float v) {
+    return (v - from) / (to - from);
+}
+
+// AMD likes 64 per group and Nvidia supposedly likes 32.
+// Decided to just compromise on the lowest count.
+[numthreads(32,32,1)]
+void CSMain (const uint3 id : SV_DispatchThreadID) {
+    // Sample the new column and convert it to normalized dbfs scale.
+    const float sample = clamp(Samples[id.y], EPSILON, 1.0);
+    const float dbfs = clamp(20.0 * log10(sample), DBFS_LOWER, DBFS_UPPER);
+    const float norm = inverse_lerp(DBFS_LOWER, DBFS_UPPER, dbfs);
+    const float4 current = float4(float3(1.0, 1.0, 1.0) * norm, 1.0);
+ 
+    // Sample the previous texture offset by -1 on the X axis from the current position.
+    const uint2 id_prev = uint2(clamp(id.x - 1, 0, SampleCount), id.y);
+    const float4 previous = Previous[id_prev];
+
+    // Writes in the new column only when id.x is zero.
+    // After the first column, the samples of the previous texture are used.
+    Current[id.xy] = lerp(current, previous, clamp(id.x, 0, 1));
+}
