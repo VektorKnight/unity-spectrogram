@@ -27,7 +27,10 @@ namespace Spectrogram {
         [SerializeField] private Image _freqScale;
         [SerializeField] private Text _stats;
         
+        // State/config.
+        private bool _stereoMode;
         private int _sampleCount;
+        private bool _error;
         
         // Textures.
         private Texture2D _gradientTexture;
@@ -41,7 +44,9 @@ namespace Spectrogram {
         private ComputeBuffer _samplesBuffer;
 
         // Stats stuff.
-        private Stopwatch _stopWatch;
+        private Stopwatch _specTimer;
+        private FloatRingBuffer _specAverage;
+        private FloatRingBuffer _dtAverage;
         private string _sampleRate = "";
         private string _bufferSize = "";
         
@@ -54,6 +59,8 @@ namespace Spectrogram {
         private static readonly int _idCurrent = Shader.PropertyToID("Current");
 
         private void Start() {
+            _stereoMode = _stereo;
+            
             // Get sample count from quality setting.
             // Prevents user from entering invalid values.
             _sampleCount = _quality switch {
@@ -62,9 +69,33 @@ namespace Spectrogram {
                 SpectrogramQuality.Medium => 1024,
                 SpectrogramQuality.High => 2048,
                 SpectrogramQuality.VeryHigh => 4096,
-                _ => throw new ArgumentOutOfRangeException()
+                SpectrogramQuality.Extreme => 8192,
+                _ => -1
             };
             
+            // Catch some basic errors.
+            if (!SystemInfo.supportsComputeShaders) {
+                Debug.LogError("Your system does not support compute shaders.\n" +
+                               "The spectrogram cannot run on the current platform.");
+                _error = true;
+                return;
+            }
+            
+            if (_sampleCount == -1) {
+                Debug.LogError("Invalid quality level selected.\n" +
+                               "Make sure a valid level is selected in the inspector and restart.");
+                _error = true;
+                return;
+            }
+            
+            if (SystemInfo.maxTextureSize < _sampleCount) {
+                Debug.LogError($"Your system cannot support the selected quality level.\n" +
+                               $"Try selecting a lower quality level and restarting.");
+                _error = true;
+                return;
+            }
+            
+            // Create the two render textures for the spectrogram.
             _previousTexture = new RenderTexture(_sampleCount, _sampleCount, 1, RenderTextureFormat.ARGB32, 1) {
                 enableRandomWrite = true,
                 filterMode = FilterMode.Bilinear,
@@ -79,26 +110,33 @@ namespace Spectrogram {
 
             _previousTexture.Create();
             _currentTexture.Create();
-
+            
+            // Generate a 1D LUT from the gradient.
             _gradientTexture = TextureUtility.GenerateGradientTexture(_gradient);
             
+            // Configure the renderer with the spectrogram and gradient textures.
             _renderer.material.SetTexture("_GradientTex", _gradientTexture);
             _renderer.texture = _currentTexture;
-
-            _samplesLeft = new float[_stereo ? _sampleCount / 2 : _sampleCount];
-            _samplesRight = new float[_stereo ? _sampleCount / 2 : _sampleCount];
+            
+            // Initialize sample buffers.
+            _samplesLeft = new float[_stereoMode ? _sampleCount / 2 : _sampleCount];
+            _samplesRight = new float[_stereoMode ? _sampleCount / 2 : _sampleCount];
             _samplesFinal = new float[_sampleCount];
-
             _samplesBuffer = new ComputeBuffer(_sampleCount, 4, ComputeBufferType.Structured);
-
+            
+            // Generate static UI strings.
             _sampleRate = $"Sample Rate: {AudioSettings.outputSampleRate:N0}Hz\n";
             _bufferSize = $"Sample Buffer: {(float)(_sampleCount * 4) / 1024:N0}kB\n";
-            
-            _stopWatch = new Stopwatch();
 
-            //Application.targetFrameRate = 60;
+            _specTimer = new Stopwatch();
+            _specAverage = new FloatRingBuffer(120);
+            _dtAverage = new FloatRingBuffer(120);
         }
-
+        
+        /// <summary>
+        /// Gets the normalized position of the mouse within the spectrogram view.
+        /// </summary>
+        /// <returns></returns>
         private Vector2 GetMouseViewPosition() {
             RectTransformUtility.ScreenPointToLocalPointInRectangle(_renderer.rectTransform, Input.mousePosition, null, out var mouseLocal);
             var rectSize = _renderer.rectTransform.rect.size;
@@ -113,19 +151,19 @@ namespace Spectrogram {
         /// </summary>
         private void FixedUpdate() {
             // No need to run if the source isn't playing.
-            if (!_audioSource.isPlaying) return;
+            if (_error || !_audioSource.isPlaying) return;
             
             // Start profiling.
+            _specTimer.Start();
             Profiler.BeginSample("Spectrogram Pipeline");
-            _stopWatch.Start();
-                
+
             // Grab samples for both channels.
             _audioSource.GetSpectrumData(_samplesLeft, 0, FFTWindow.Hamming);
             _audioSource.GetSpectrumData(_samplesRight, 1, FFTWindow.Hamming);
 
             // Write channels in sequentially for stereo mode.
             // Mono mode just averages the channels.
-            if (_stereo) {
+            if (_stereoMode) {
                 Array.Copy(_samplesLeft, 0, _samplesFinal, 0, _samplesLeft.Length);
                 Array.Copy(_samplesRight, 0, _samplesFinal, _samplesFinal.Length / 2, _samplesRight.Length);
             }
@@ -147,11 +185,15 @@ namespace Spectrogram {
             Graphics.CopyTexture(_currentTexture, _previousTexture);
             
             // Done profiling.
+            _specTimer.Stop();
+            _specAverage.Push(_specTimer.ElapsedMilliseconds);
+            _specTimer.Reset();
             Profiler.EndSample();
-            _stopWatch.Stop();
         }
 
         private void Update() {
+            if (_error) return;
+            
             // Update view rect.
             var currentOffset = _viewRect.min;
             var currentSize = _viewRect.size;
@@ -222,14 +264,17 @@ namespace Spectrogram {
             var freqTransform = _freqScale.rectTransform;
             freqTransform.anchoredPosition = new Vector2(0f, currentOffset.y * freqTransform.rect.height);
             freqTransform.localScale = new Vector3(1f, currentSize.y, 1f);
-            
-            var pipelineTime = _stopWatch.ElapsedMilliseconds;
-            _stopWatch.Reset();
+
+            _dtAverage.Push(Time.deltaTime);
+            var specAvg = _specAverage.Average();
+            var dtAvg = _dtAverage.Average();
             
             _stats.text = _sampleRate +
                           _bufferSize +
                           $"FFT Length: {_sampleCount:N0}\n" +
-                          $"Total Time: {pipelineTime}ms";
+                          $"Spectrogram Time: {specAvg:n1}ms\n" +
+                          $"Total Time: {dtAvg * 1000:n1}ms\n" +
+                          $"FPS: {1f / dtAvg:n0}";
 
             _mousePrevious = Input.mousePosition;
         }
