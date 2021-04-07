@@ -13,6 +13,14 @@ The project itself was built in **2020.2** but should work in anything recent.
 Open up the **Spectrogram** scene in **Assets/Spectrogram/** and enter play mode to immediately test it with the included audio clip.  
 The **Spectrogram** object in the hierarchy has all the configuration values.
 
+## Controls
+- Zoom: Scroll
+- Pan: Left Click + Drag
+- Reset View: Home
+- Play/Pause: Spacebar
+- Frequency Scale: Ctrl + Scroll
+- Time Axis: Shift + Scroll
+
 ## Performance
 Performance is generally quite good on any system supporting compute shaders.  
 The **Extreme** quality setting takes around 0.7ms on my system with an i7-8700K and AMD RX 6800.  
