@@ -1,8 +1,10 @@
 # unity-spectrogram
 A basic spectrogram built in Unity with a focus on overall performance.  
 Uses a compute shader to generate the base texture and then a very simple gradient lookup shader to color the result.  
+
 This was mostly a weekend project to explore the concept and I do not currently plan to maintain this project beyond bugfixes and performance improvements.  
-The important sections of code have been annotated for easy reference and should make it fairly easy to port or reimplement in your own project.
+The important sections of code have been annotated for easy reference and should make it fairly easy to port or reimplement in your own project.  
+
 The UI was hastily written for demonstration purposes only and should probably not be used beyond basic reference.
 
 ## Usage
