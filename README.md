@@ -3,7 +3,7 @@ A basic spectrogram built in Unity with a focus on overall performance.
 Uses a compute shader to generate the base texture and then a very simple gradient lookup shader to color the result.  
 This was mostly a weekend project to explore the concept and I do not currently plan to maintain this project beyond bugfixes and performance improvements.  
 The important sections of code have been annotated for easy reference and should make it fairly easy to port or reimplement in your own project.
-I in no way claim to be an expert on GPU computing or Unity development and the implementation was simply done to the best of my ability.
+The UI was hastily written for demonstration purposes only and should probably not be used beyond basic reference.
 
 ## Usage
 Clone the repository and open up the project in your desired Unity version.  
