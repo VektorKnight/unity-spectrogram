@@ -21,8 +21,10 @@ namespace Spectrogram {
         [Header("UI Stuffs")] 
         [SerializeField] private Rect _viewRect = new Rect(0f, 0f, 1f, 1f);
         [SerializeField] private Vector2 _minSize = new Vector2(0.1f, 0.1f);
-        [SerializeField] private Text _timeText;
-        [SerializeField] private Text _freqText;
+        [SerializeField] private Text _timeStart;
+        [SerializeField] private Text _timeEnd;
+        [SerializeField] private Text _freqStart;
+        [SerializeField] private Text _freqEnd;
         [SerializeField] private Image _timeScale;
         [SerializeField] private Image _freqScale;
         [SerializeField] private Text _stats;
@@ -200,8 +202,8 @@ namespace Spectrogram {
             
             var scrollDelta = -Input.mouseScrollDelta.y * 0.01f;
             var panDelta = Input.mousePosition - _mousePrevious;
-            panDelta.x = (panDelta.x / Screen.width) * currentSize.x;
-            panDelta.y = (panDelta.y / Screen.height) * currentSize.y;
+            panDelta.x = panDelta.x / Screen.width * currentSize.x;
+            panDelta.y = panDelta.y / Screen.height * currentSize.y;
 
             var mouseLocal = GetMouseViewPosition();
             
@@ -252,10 +254,17 @@ namespace Spectrogram {
             _renderer.uvRect = _viewRect;
             
             // Update stat display values.
-            var timeEnd = Mathf.RoundToInt((_sampleCount * Time.fixedDeltaTime) * currentSize.x);
-            var freqEnd = Mathf.RoundToInt((AudioSettings.outputSampleRate / 2000f) * currentSize.y);
-            _timeText.text = $"{timeEnd:n0}s";
-            _freqText.text = $"{freqEnd:n0}K";
+            var timeStart = Mathf.RoundToInt(_sampleCount * Time.fixedDeltaTime * currentOffset.x);
+            var timeEnd = timeStart + Mathf.RoundToInt(_sampleCount * Time.fixedDeltaTime * currentSize.x);
+
+            var freqStart = Mathf.RoundToInt(AudioSettings.outputSampleRate / 2f * currentOffset.y);
+            var freqEnd = freqStart + Mathf.RoundToInt(AudioSettings.outputSampleRate / 2f * currentSize.y);
+
+            _timeStart.text = $"{timeStart}s";
+            _timeEnd.text = $"{timeEnd}s";
+
+            _freqStart.text = freqStart > 1000 ? $"{(float)freqStart / 1000f:n1}kHz" : $"{freqStart}Hz";
+            _freqEnd.text = freqEnd > 1000 ? $"{(float)freqEnd / 1000f:n1}kHz" : $"{freqEnd}Hz";
 
             var timeTransform = _timeScale.rectTransform;
             timeTransform.anchoredPosition = new Vector2(currentOffset.x * timeTransform.rect.width, 0f);

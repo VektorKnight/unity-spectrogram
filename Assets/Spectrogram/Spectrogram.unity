@@ -196,7 +196,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 64, y: 1048}
+  m_SizeDelta: {x: 96, y: 1048}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!1 &186493325
 GameObject:
@@ -232,8 +232,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 64, y: 32}
-  m_SizeDelta: {x: -64, y: -32}
+  m_AnchoredPosition: {x: 96, y: 32}
+  m_SizeDelta: {x: -96, y: -32}
   m_Pivot: {x: 0, y: 0}
 --- !u!114 &186493327
 MonoBehaviour:
@@ -530,7 +530,7 @@ GameObject:
   - component: {fileID: 541001400}
   - component: {fileID: 541001399}
   m_Layer: 5
-  m_Name: Axis Start
+  m_Name: Time Start
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1168,8 +1168,10 @@ MonoBehaviour:
     width: 1
     height: 1
   _minSize: {x: 0.1, y: 0.1}
-  _timeText: {fileID: 686559859}
-  _freqText: {fileID: 1556268467}
+  _timeStart: {fileID: 541001399}
+  _timeEnd: {fileID: 686559859}
+  _freqStart: {fileID: 1249148841}
+  _freqEnd: {fileID: 1556268467}
   _timeScale: {fileID: 1902639822}
   _freqScale: {fileID: 9085938}
   _stats: {fileID: 809182302}
@@ -1502,7 +1504,7 @@ GameObject:
   - component: {fileID: 1249148842}
   - component: {fileID: 1249148841}
   m_Layer: 5
-  m_Name: Axis Start
+  m_Name: Freq Start
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1525,7 +1527,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
   m_AnchoredPosition: {x: 0, y: 8}
-  m_SizeDelta: {x: 48, y: 32}
+  m_SizeDelta: {x: 96, y: 32}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &1249148841
 MonoBehaviour:
@@ -1604,7 +1606,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
   m_AnchoredPosition: {x: 0, y: -8}
-  m_SizeDelta: {x: 48, y: 32}
+  m_SizeDelta: {x: 96, y: 32}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1556268467
 MonoBehaviour:
@@ -1686,8 +1688,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: 32, y: 0}
-  m_SizeDelta: {x: -64, y: 32}
+  m_AnchoredPosition: {x: 48, y: 0}
+  m_SizeDelta: {x: -96, y: 32}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &1715896587
 MonoBehaviour:
@@ -1841,7 +1843,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 32}
-  m_SizeDelta: {x: 64, y: -32}
+  m_SizeDelta: {x: 96, y: -32}
   m_Pivot: {x: 0, y: 0}
 --- !u!114 &1978299913
 MonoBehaviour:
