@@ -18,7 +18,7 @@ The **Spectrogram** object in the hierarchy has all the configuration values.
 - Pan: Left Click + Drag
 - Reset View: Home
 - Play/Pause: Spacebar
-- Frequency Scale: Ctrl + Scroll
+- Frequency Axis: Ctrl + Scroll
 - Time Axis: Shift + Scroll
 
 ## Performance
